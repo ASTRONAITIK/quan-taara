@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Quan-taara</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,300;0,400;0,700;1,300;1,400&family=DM+Mono:ital,wght@0,300;0,400;1,300&family=Outfit:wght@200;300;400;500&family=Space+Grotesk:wght@300;400;500&family=Syne:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root{
+  --void:#000000;
+  --deep:#040008;
+  --surface:rgba(4,2,10,0.72);
+  --surface-b:rgba(8,4,20,0.82);
+  --orange:#ff8c42;
+  --orange-d:rgba(255,140,66,0.35);
+  --orange-g:rgba(255,140,66,0.08);
+  --blue:#4fc3f7;
+  --blue-g:rgba(79,195,247,0.18);
+  --hot:#fff4e0;
+  --text:#e2ddd4;
+  --white:#dedad2;
+  --info:#c4bfd8;
+  --dim:#4e4a60;
+  --border:rgba(255,255,255,0.06);
+  --border2:rgba(255,255,255,0.11);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{background:var(--void);color:var(--text);font-family:'Space Grotesk',sans-serif;font-weight:400;overflow-x:hidden;cursor:none}
+
+/* ── CURSOR ── */
+.cdot{position:fixed;width:2px;height:4px;background:var(--orange);border-radius:50%;z-index:9999;pointer-events:none;transform:translate(-50%,-50%);box-shadow:0 0 10px var(--orange),0 0 25px var(--orange-d)}
+.cring{position:fixed;width:25px;height:25px;border:1px solid rgba(255,140,66,0.4);border-radius:50%;z-index:9998;pointer-events:none;transform:translate(-50%,-50%);transition:width .3s,height .3s}
+.caura{position:fixed;width:280px;height:280px;background:radial-gradient(circle,rgba(255,140,66,0.04) 0%,transparent 70%);border-radius:50%;z-index:0;pointer-events:none;transform:translate(-50%,-50%);transition:transform .5s cubic-bezier(.23,1,.32,1);mix-blend-mode:screen}
+body.hov .cdot{transform:translate(-50%,-50%) scale(2);background:var(--blue)}
+body.hov .cring{width:50px;height:50px;border-color:rgba(79,195,247,.5)}
+
+/* ── BG CANVAS ── */
+#bg{position:fixed;inset:0;z-index:0;image-rendering:unpixelated;image-rendering:crisp-edges}
+
+/* ── OVERLAYS ── */
+.vig{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse 90% 90% at 50% 55%,transparent 0%,rgba(0,0,0,.75) 100%)}
+.scan{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:.022;background:repeating-linear-gradient(to bottom,transparent 0,transparent 3px,rgba(255,255,255,.3) 3px,rgba(255,255,255,.3) 4px)}
+.noise{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:180px}
+
+/* ── NAV ── */
+nav{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:100;display:flex;align-items:center;gap:40px;padding:13px 36px;background:rgba(3,1,8,.82);backdrop-filter:blur(24px);border:1px solid var(--border2);border-radius:60px;animation:navIn 1s ease forwards;box-shadow:0 0 60px rgba(255,140,66,.04),inset 0 1px 0 rgba(255,255,255,.04)}
+@keyframes navIn{from{opacity:0;transform:translateX(-50%) translateY(-20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.nlogo{font-family:'DM Mono',monospace;font-size:.7rem;letter-spacing:.5em;color:var(--orange);text-shadow:0 0 20px var(--orange-d)}
+.ndiv{width:1px;height:14px;background:var(--border2)}
+.nlinks{display:flex;gap:24px;list-style:none}
+.nlinks a{color:var(--dim);text-decoration:none;font-family:'DM Mono',monospace;font-size:.55rem;letter-spacing:.15em;text-transform:uppercase;transition:color .3s;position:relative}
+.nlinks a::after{content:'';position:absolute;bottom:-2px;left:0;width:0;height:1px;background:var(--orange);transition:width .3s}
+.nlinks a:hover{color:var(--orange)}
+.nlinks a:hover::after{width:100%}
+
+/* ── HERO ── */
+.hero{position:relative;z-index:3;height:100vh;display:flex;flex-direction:column;justify-content:center;padding:0 9%}
+.eyebrow{display:flex;align-items:center;gap:14px;margin-bottom:28px;opacity:0;animation:fu 1s ease .4s forwards}
+.eline{width:36px;height:1px;background:linear-gradient(to right,transparent,var(--orange))}
+.etxt{font-family:'DM Mono',monospace;font-size:.5rem;letter-spacing:.4em;color:var(--orange);text-transform:uppercase}
+.htitle{font-family:'Playfair Display',Papyara;font-size:clamp(3.8rem,13vw,12rem);font-weight:370;line-height:.87;color:transparent;background:linear-gradient(155deg,#fff 0%,rgba(230,220,200,.85) 45%,rgba(150,140,170,.5) 100%);-webkit-background-clip:text;background-clip:text;opacity:0;animation:titleIn 1.8s cubic-bezier(.16,1,.3,1) .1s forwards}
+@keyframes titleIn{from{opacity:0;transform:translateY(90px) skewY(5deg);filter:blur(24px)}to{opacity:1;transform:none;filter:blur(0)}}
+.htitle em{font-style:italic;background:linear-gradient(135deg,var(--orange) 0%,#ffd080 50%,var(--orange) 100%);-webkit-background-clip:text;background-clip:text;filter:drop-shadow(0 0 50px rgba(255,140,66,.55))}
+.hmeta{display:flex;align-items:flex-start;gap:60px;margin-top:48px;opacity:0;animation:fu 1s ease .6s forwards}
+.hdesc{max-width:360px;font-family:'Space Grotesk',sans-serif;font-size:clamp(.78rem,1.4vw,.86rem);line-height:1.9;color:var(--white);font-weight:400;letter-spacing:.01em}
+.hstats{display:flex;gap:36px;color:var(--white)}
+.stat{display:flex;flex-direction:column;gap:4px;color:var(--white)}
+.snum{font-family:'Playfair Display',serif;font-size:2.1rem;color:var(--orange);line-height:1;text-shadow:0 0 25px var(--orange-d)}
+.slbl{font-family:'DM Mono',monospace;font-size:.45rem;letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
+.hcta{margin-top:56px;display:inline-flex;align-items:center;gap:16px;text-decoration:none;width:fit-content;opacity:0;animation:fu 1s ease .8s forwards}
+.ctabtn{padding:15px 38px;border:1px solid var(--orange);color:var(--orange);font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:.3em;text-transform:uppercase;background:var(--orange-g);transition:all .4s;position:relative;overflow:hidden}
+.ctabtn::before{content:'';position:absolute;inset:0;background:var(--orange);transform:scaleX(0);transform-origin:left;transition:transform .4s cubic-bezier(.16,1,.3,1)}
+.ctabtn:hover{color:var(--void);box-shadow:0 0 60px var(--orange-d)}
+.ctabtn:hover::before{transform:scaleX(1)}
+.ctabtn span{position:relative;z-index:1}
+.scrollind{position:absolute;bottom:36px;left:9%;display:flex;align-items:center;gap:10px;opacity:0;animation:fu 1s ease 1.2s forwards}
+.sline{width:1px;height:44px;background:linear-gradient(to bottom,var(--orange-d),transparent);animation:spulse 2s ease-in-out infinite}
+@keyframes spulse{0%,100%{opacity:.4}50%{opacity:1}}
+.stxt{font-family:'DM Mono',monospace;font-size:.48rem;letter-spacing:.3em;color:var(--dim);writing-mode:vertical-rl;text-transform:uppercase}
+@keyframes fu{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── SECTIONS ── */
+section{position:relative;z-index:3;padding:130px 7%}
+.stag{display:inline-flex;align-items:center;gap:10px;font-family:'DM Mono',monospace;font-size:.65rem;letter-spacing:.4em;color:var(--orange);text-transform:uppercase;margin-bottom:18px}
+.stag::before{content:'';width:18px;height:1px;background:var(--orange)}
+.stitle{font-family:'Playfair Display',serif;font-size:clamp(2rem,4.5vw,3.8rem);font-weight:400;color:var(--text);margin-bottom:60px;line-height:1.1}
+
+/* ── CARDS GRID ── */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
+.pcard{position:relative;padding:36px;min-height:280px;display:flex;flex-direction:column;cursor:pointer;background:var(--surface);border:1px solid var(--border);border-radius:1px;transition:border-color .4s;overflow:hidden;transform-style:preserve-3d}
+.pcard::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,140,66,.06) 0%,Opaque 60%);opacity:0;transition:opacity .4s;pointer-events:none}
+.pcard::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--orange),transparent);transform:scaleX(0);transition:transform .5s cubic-bezier(.16,1,.3,1);transform-origin:center}
+.pcard:hover{border-color:rgba(255,140,66,.3)}
+.pcard:hover::before{opacity:1}
+.pcard:hover::after{transform:scaleX(1)}
+.cid{font-family:'DM Mono',monospace;font-size:.48rem;letter-spacing:.25em;color:var(--dim);margin-bottom:36px;display:flex;justify-content:space-between}
+.cnum{color:rgba(255,140,66,.25);font-size:.4rem}
+.ctitle{font-family:'Playfair Display',serif;font-size:clamp(1.4rem,2.2vw,1.7rem);font-weight:400;color:var(--text);margin-bottom:12px;margin-top:auto;transition:color .3s}
+.pcard:hover .ctitle{color:#fffefe}
+.cdesc{font-family:'Space Grotesk',sans-serif;font-size:.76rem;line-height:1.85;color:rgba(196,191,216,0.82);margin-bottom:24px;font-weight:400;letter-spacing:.008em}
+.ctags{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:20px}
+.ctag{padding:3px 10px;border:1px solid var(--border2);font-family:'DM Mono',monospace;font-size:.42rem;letter-spacing:.12em;color:var(--dim);text-transform:uppercase}
+.cgo{display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:.5rem;letter-spacing:.12em;color:var(--orange);text-transform:uppercase;opacity:0;transform:translateY(8px);transition:all .3s}
+.pcard:hover .cgo{opacity:1;transform:translateY(0)}
+.garrow{width:22px;height:1px;background:var(--orange);position:relative}
+.garrow::after{content:'';position:absolute;right:0;top:-3px;border-top:3px solid transparent;border-bottom:3px solid transparent;border-left:5px solid var(--orange)}
+.corbit{position:absolute;top:-30px;right:-30px;width:70px;height:70px;border:1px solid rgba(255,140,66,.07);border-radius:50%;opacity:0;transition:opacity .5s;animation:orb 7s linear infinite;pointer-events:none}
+.corbit::before{content:'';position:absolute;top:6px;left:50%;width:5px;height:5px;background:var(--orange);border-radius:50%;transform:translateX(-50%);box-shadow:0 0 8px var(--orange)}
+.pcard:hover .corbit{opacity:1}
+@keyframes orb{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+/* ── FIELD BADGE ── */
+.fbadge{position:absolute;top:16px;right:16px;padding:3px 9px;font-family:'DM Mono',monospace;font-size:.38rem;letter-spacing:.15em;text-transform:uppercase;border-radius:1px}
+.badge-physics{background:rgba(79,195,247,.08);color:var(--blue);border:1px solid rgba(79,195,247,.2)}
+.badge-astro{background:rgba(255,140,66,.08);color:var(--orange);border:1px solid rgba(255,140,66,.2)}
+.badge-space{background:rgba(180,120,255,.08);color:#b47cff;border:1px solid rgba(180,120,255,.2)}
+.badge-bio{background:rgba(80,220,120,.08);color:#50dc78;border:1px solid rgba(80,220,120,.2)}
+
+/* ── MODAL ── */
+.moverlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,5,.97);backdrop-filter:blur(40px);display:flex;justify-content:center;align-items:center;opacity:0;visibility:hidden;transition:opacity .4s,visibility .4s}
+.moverlay.active{opacity:1;visibility:visible}
+.mcontent{width:96%;max-width:1320px;height:92vh;background:rgba(4,2,14,.85);border:1px solid var(--border2);border-radius:2px;display:flex;flex-direction:column;overflow:hidden;position:relative;transform:translateY(40px) scale(.97);transition:transform .5s cubic-bezier(.16,1,.3,1);box-shadow:0 0 120px rgba(255,140,66,.04),0 40px 80px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.04)}
+.moverlay.active .mcontent{transform:none}
+.mhdr{padding:26px 38px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;background:rgba(255,255,255,.01)}
+.mlbl{font-family:'DM Mono',monospace;font-size:.48rem;letter-spacing:.4em;color:var(--orange);text-transform:uppercase;margin-bottom:5px}
+.mtitle{font-family:'Playfair Display',serif;font-size:clamp(1.4rem,3vw,2rem);color:var(--text);font-weight:400}
+.mclose{width:38px;height:38px;border-radius:50%;border:1px solid var(--border2);background:transparent;color:var(--dim);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:all .3s;font-family:'DM Mono',monospace}
+.mclose:hover{border-color:rgba(200,70,70,.5);color:#000000;background:rgba(200,70,70,.08);transform:rotate(90deg)}
+.mbody{flex:1;overflow-y:auto;padding:44px;display:flex;flex-direction:column;gap:52px;position:relative;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.mbody::-webkit-scrollbar{width:3px}
+.mbody::-webkit-scrollbar-thumb{background:var(--border2)}
+
+/* ── EQUATION BLOCKS ── */
+.cblock{}
+.ctag2{font-family:'DM Mono',monospace;font-size:.48rem;letter-spacing:.3em;color:#b47cff;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.ctag2::before{content:'';width:14px;height:1px;background:#b47cff}
+.cttl{font-family:'Playfair Display',serif;font-size:1.55rem;color:var(--text);margin-bottom:10px;font-weight:400}
+.cdsc{font-family:'Space Grotesk',sans-serif;font-size:.76rem;line-height:1.9;color:rgba(196,191,216,0.82);max-width:720px;margin-bottom:28px;font-weight:400}
+.egrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.ecard{background:rgba(255,255,255,.02);border:1px solid var(--border);padding:24px;border-radius:1px;cursor:pointer;transition:all .3s;position:relative;overflow:hidden}
+.ecard::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--orange),#b47cff);transform:scaleX(0);transform-origin:left;transition:transform .3s}
+.ecard:hover{background:rgba(255,140,66,.04);border-color:rgba(255,140,66,.25);transform:translateY(-2px)}
+.ecard:hover::after{transform:scaleX(1)}
+.ecard.sel{border-color:var(--orange);background:var(--orange-g)}
+.efml{font-family:'Playfair Display',serif;font-style:italic;font-size:1.35rem;color:var(--text);margin-bottom:8px;line-height:1.2}
+.ename{font-family:'DM Mono',monospace;font-size:.45rem;letter-spacing:.12em;color:var(--blue);text-transform:uppercase}
+
+/* ── DETAIL PANEL ── */
+.dpanel{position:absolute;top:0;right:0;bottom:0;width:43%;background:rgba(3,1,12,.98);backdrop-filter:blur(50px);border-left:1px solid var(--border2);transform:translateX(100%);transition:transform .5s cubic-bezier(.16,1,.3,1);z-index:10;display:flex;flex-direction:column;box-shadow:-20px 0 60px rgba(0,0,0,.6)}
+.dpanel.open{transform:translateX(0)}
+.dhdr{padding:34px 38px 22px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;justify-content:space-between;align-items:flex-start}
+.dlbl{font-family:'DM Mono',monospace;font-size:.42rem;letter-spacing:.4em;color:#b47cff;text-transform:uppercase;margin-bottom:6px}
+.dttl{font-family:'Playfair Display',serif;font-size:1.55rem;color:var(--orange);line-height:1.2;font-weight:400}
+.dclose{background:transparent;border:0;color:var(--dim);cursor:pointer;font-size:1.1rem;padding:4px;transition:color .2s;flex-shrink:0}
+.dclose:hover{color:var(--text)}
+.fdisp{margin:28px 38px;padding:28px;text-align:center;background:rgba(255,140,66,.03);border:1px solid rgba(255,140,66,.1);border-radius:2px;position:relative}
+.fdisp::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--orange-d),transparent)}
+.fbig{font-family:'Playfair Display',serif;font-style:italic;font-size:2.5rem;color:var(--text);line-height:1.2;text-shadow:0 0 40px rgba(255,255,255,.08)}
+.dbody{flex:1;overflow-y:auto;padding:0 38px 38px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.dsec{margin-bottom:26px}
+.dslbl{font-family:'DM Mono',monospace;font-size:.47rem;letter-spacing:.3em;color:var(--blue);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.dslbl::before{content:'';width:10px;height:1px;background:var(--blue)}
+.dtxt{font-family:'Space Grotesk',sans-serif;font-size:.76rem;line-height:2;color:rgba(220,215,238,0.85);white-space:pre-wrap;font-weight:400;letter-spacing:.01em}
+
+/* ── TIMELINE ── */
+.timeline{position:relative;padding-left:56px}
+.timeline::before{content:'';position:absolute;left:18px;top:0;bottom:0;width:1px;background:linear-gradient(to bottom,transparent,rgba(255,140,66,.3),rgba(79,195,247,.2),transparent)}
+.titem{position:relative;margin-bottom:52px;opacity:0;transform:translateX(-16px);transition:opacity .6s ease-out,transform .6s ease-out}
+.titem.vis{opacity:1;transform:none}
+.tnode{position:absolute;left:-47px;top:7px;width:9px;height:9px;border-radius:50%;background:var(--orange);box-shadow:0 0 10px var(--orange),0 0 25px var(--orange-d);border:2px solid var(--void)}
+.tyr{font-family:'DM Mono',monospace;font-size:.52rem;letter-spacing:.2em;color:var(--orange);margin-bottom:7px}
+.tttl{font-family:'Playfair Display',serif;font-size:1.25rem;color:var(--text);margin-bottom:7px;font-weight:400}
+.tdsc{font-family:'Space Grotesk',sans-serif;font-size:.76rem;line-height:1.8;color:rgba(210,205,228,0.8);max-width:520px;font-weight:400;letter-spacing:.008em}
+
+/* ── AI WINDOW ── */
+.aifab{position:fixed;bottom:26px;right:26px;z-index:400;width:50px;height:50px;border-radius:50%;background:rgba(4,2,12,.88);border:1px solid rgba(255,140,66,.35);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .4s cubic-bezier(.34,1.56,.64,1);box-shadow:0 0 24px rgba(255,140,66,.12),0 8px 32px rgba(0,0,0,.4);animation:fabp 3s ease-in-out infinite}
+@keyframes fabp{0%,100%{box-shadow:0 0 20px rgba(255,140,66,.12)}50%{box-shadow:0 0 40px rgba(255,140,66,.28)}}
+.aifab:hover{transform:scale(1.15) rotate(12deg);background:var(--orange);box-shadow:0 0 60px var(--orange-d)}
+.aifab:hover svg{stroke:var(--void)}
+.aifab svg{width:20px;height:20px;stroke:var(--orange);fill:none;stroke-width:1.5;transition:stroke .3s}
+.aiw{position:fixed;bottom:90px;right:26px;width:330px;height:460px;background:rgba(3,1,14,.93);backdrop-filter:blur(40px);border:1px solid var(--border2);border-radius:3px;z-index:400;display:flex;flex-direction:column;opacity:0;visibility:hidden;transform:translateY(20px) scale(.95);transition:all .4s cubic-bezier(.16,1,.3,1);box-shadow:0 0 80px rgba(255,140,66,.05),0 40px 80px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.04)}
+.aiw.open{opacity:1;visibility:visible;transform:none}
+.aihdr{padding:18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.aiav{width:34px;height:34px;background:linear-gradient(135deg,#0a0820,#1a1050);border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,140,66,.3);box-shadow:0 0 18px rgba(255,140,66,.12);flex-shrink:0}
+.aiav svg{width:16px;height:16px;stroke:var(--orange);fill:none;stroke-width:1.5}
+.aititle{font-family:'Playfair Display',serif;font-size:.85rem;color:var(--text);font-weight:400}
+.aist{font-family:'DM Mono',monospace;font-size:.42rem;letter-spacing:.18em;color:var(--orange);display:flex;align-items:center;gap:4px}
+.sdot{width:4px;height:4px;background:#60e880;border-radius:50%;animation:sdp 2s ease-in-out infinite}
+@keyframes sdp{0%,100%{opacity:1}50%{opacity:.3}}
+.aimsgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.aimsgs::-webkit-scrollbar{width:2px}
+.msg{max-width:90%;padding:10px 14px;border-radius:2px;font-size:.72rem;line-height:1.75;letter-spacing:.01em}
+.msg.bot{background:rgba(255,255,255,.04);border:1px solid var(--border);border-left:2px solid var(--orange);color:var(--white);align-self:flex-start;font-family:'Space Grotesk',sans-serif;font-weight:400}
+.msg.usr{background:linear-gradient(135deg,rgba(255,140,66,.12),rgba(180,124,255,.08));border:1px solid rgba(255,140,66,.2);color:var(--text);align-self:flex-end;font-family:'Space Grotesk',sans-serif}
+.msg.think{background:rgba(255,255,255,.02);border:1px dashed rgba(255,255,255,.06);color:rgba(200,195,220,0.7);align-self:flex-start;font-family:'DM Mono',monospace;font-size:.6rem}
+.airow{padding:14px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0}
+.aiinp{flex:1;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:2px;padding:9px 14px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:.72rem;outline:none;transition:border-color .3s}
+.aiinp:focus{border-color:rgba(255,140,66,.3)}
+.aiinp::placeholder{color:var(--dim)}
+.aisnd{width:36px;height:36px;border-radius:2px;background:rgba(255,140,66,.1);border:1px solid rgba(255,140,66,.2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s;flex-shrink:0}
+.aisnd:hover{background:var(--orange);border-color:var(--orange)}
+.aisnd:hover svg{stroke:var(--void)}
+.aisnd svg{width:14px;height:14px;stroke:var(--orange);fill:none;stroke-width:2;transition:stroke .3s}
+
+/* ── LOADER ── */
+.loader{position:fixed;inset:0;z-index:9999;background:var(--void);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;transition:opacity .8s,visibility .8s}
+.loader.gone{opacity:0;visibility:hidden}
+.lring{width:60px;height:60px;border-radius:50%;border:1px solid rgba(255,140,66,.15);border-top-color:var(--orange);animation:spin 1s linear infinite}
+.lring2{position:absolute;width:80px;height:80px;border-radius:50%;border:1px solid rgba(79,195,247,.08);border-bottom-color:var(--blue);animation:spin 1.6s linear infinite reverse}
+.lwrp{position:relative;display:flex;align-items:center;justify-content:center}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ltxt{font-family:'DM Mono',monospace;font-size:.5rem;letter-spacing:.5em;color:var(--white);text-transform:uppercase;animation:blink 1.5s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:.3}50%{opacity:1}}
+
+/* ── FOOTER ── */
+footer{position:relative;z-index:3;padding:44px 7%;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.4)}
+.flogo{font-family:'DM Mono',monospace;font-size:.6rem;letter-spacing:.5em;color:var(--orange-d)}
+.fmeta{font-family:'DM Mono',monospace;font-size:.47rem;letter-spacing:.2em;color:rgba(196,191,216,0.6)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1024px){.dpanel{width:100%;top:auto;bottom:0;height:56%;transform:translateY(100%);border-left:0;border-top:1px solid var(--border2)}.dpanel.open{transform:translateY(0)}}
+@media(max-width:768px){nav{gap:20px;padding:11px 22px;left:14px;right:14px;width:auto;transform:none}.nlinks{display:none}.hero{padding:0 6%}.hstats{display:none}.pgrid{grid-template-columns:1fr}.section{padding:90px 5%}.aiw{width:calc(100% - 40px)}.pcard{transform:none!important}.cdot,.cring,.caura{display:none}body{cursor:auto}}
+</style>
+</head>
+<body>
+
+<div class="loader" id="loader">
+  <div class="lwrp"><div class="lring"></div><div class="lring2"></div></div>
+  <div class="ltxt">Getting Sagittarius A ready for you!</div>
+</div>
+
+<div class="cdot" id="cdot"></div>
+<div class="cring" id="cring"></div>
+<div class="caura" id="caura"></div>
+<div class="vig"></div>
+<div class="scan"></div>
+<div class="noise"></div>
+
+<canvas id="bg"></canvas>
+
+<nav>
+  <div class="nlogo">Explore the VOID</div>
+  <div class="ndiv"></div>
+  <ul class="nlinks">
+    <li><a href="#disciples">Disciples</a></li>
+    <li><a href="#Timeline">Timeline</a></li>
+    <li><a href="#Seek about us">Observatory</a></li>
+  </ul>
+</nav>
+
+<section class="hero">
+  <div class="eyebrow"><div class="eline"></div><span class="etxt">Quan-Taara Interface Mark-I — Sagittarius A Edition</span></div>
+  <h1 class="htitle">MAKE<br><em>YOUR PHYSICS</em><br>GOATED</h1>
+  <div class="hmeta">
+    <p class="hdesc">An immersive compendium spanning sixteen disciplines — from quantum foam to the edge of the observable universe.</p>
+    <div class="hstats">
+      <div class="stat"><div class="snum">16</div><div class="slbl">Disciplines</div></div>
+      <div class="stat"><div class="snum">48+</div><div class="slbl">Equations</div></div>
+      <div class="stat"><div class="snum">∞ite</div><div class="slbl">Wonder</div></div>
+    </div>
+  </div>
+  <a href="#disciples" class="hcta"><div class="ctabtn"><span>Enter Interface</span></div></a>
+  <div class="scrollind"><div class="sline"></div><div class="stxt">Scroll</div></div>
+</section>
+
+<section id="disciples">
+  <div class="stag">Foundational &amp; Frontier Fields</div>
+  <h2 class="stitle">The Disciples</h2>
+  <div class="pgrid" id="pgrid"></div>
+</section>
+
+<section id="Timeline">
+  <div class="stag">Chronology of Discovery</div>
+  <h2 class="stitle">Timeline of Discovery</h2>
+  <div class="timeline" id="tl"></div>
+</section>
+
+<section id="Seek about us">
+  <div class="stag">The Observatory</div>
+  <h2 class="stitle">About this Interface</h2>
+  <p style="font-family:'Space Grotesk',sans-serif;font-size:.8rem;line-height:2;color:rgba(210,205,228,0.82);max-width:700px;font-weight:400;letter-spacing:.01em">Quan-Taara Interface Mark-I is an interactive physics and astrophysics compendium. The background renders a procedurally generated pixelated black hole — complete with a rotating accretion disk exhibiting Keplerian differential rotation, relativistic polar jets, and a gravitational lensing halo — all rendered at 1/4 resolution for the pixel-art aesthetic. Click any discipline card to explore its equations and derivations. Ask the AI interface any physics question.</p>
+</section>
+
+<footer>
+  <div class="flogo">Quan-Taara</div>
+  <div class="fmeta">Quan-Taara Interface Mark-I — Sagittarius A Edition</div>
+</footer>
+
+<!-- MODAL -->
+<div class="moverlay" id="modal">
+  <div class="mcontent">
+    <div class="mhdr">
+      <div><div class="mlbl">Discipline — Deep Dive</div><h2 class="mtitle" id="mtitle">Title</h2></div>
+      <button class="mclose" id="mclose">&times;</button>
+    </div>
+    <div class="mbody" id="mbody"></div>
+    <div class="dpanel" id="dpanel">
+      <div class="dhdr">
+        <div><div class="dlbl">Equation in Detail</div><h3 class="dttl" id="dttl"></h3></div>
+        <button class="dclose" id="dclose">&times;</button>
+      </div>
+      <div class="fdisp"><div class="fbig" id="dfml"></div></div>
+      <div class="dbody">
+        <div class="dsec"><div class="dslbl">Explanation</div><div class="dtxt" id="dexp"></div></div>
+        <div class="dsec"><div class="dslbl">Derivation</div><div class="dtxt" id="ddrv"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AI -->
+<button class="aifab" id="aitrig" aria-label="Open AI">
+  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+</button>
+<div class="aiw" id="aiw">
+  <div class="aihdr">
+    <div class="aiav"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7" stroke-dasharray="3 2"/></svg></div>
+    <div><div class="aititle">ASTROPIX</div><div class="aist"><div class="sdot"></div><span>Pix Interface Online</span></div></div>
+  </div>
+  <div class="aimsgs" id="aimsgs"><div class="msg bot">ASTROPIX online. I search the live web to answer your physics questions — ask me anything about black holes, quantum fields, dark matter, exoplanets, gravitational waves, or any branch of astrophysics. I learn from our conversation to give deeper answers over time.</div></div>
+  <div class="airow">
+    <input class="aiinp" id="aiinp" type="text" placeholder="Query the neural database...">
+    <button class="aisnd" id="aisnd"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   LOADER
+═══════════════════════════════════════════════════════ */
+window.addEventListener('load', () => {
+  setTimeout(() => document.getElementById('loader').classList.add('gone'), 1400);
+});
+
+/* ═══════════════════════════════════════════════════════
+   CURSOR
+═══════════════════════════════════════════════════════ */
+const dot = document.getElementById('cdot');
+const ring = document.getElementById('cring');
+const aura = document.getElementById('caura');
+let mx = 0, my = 0, rx = 0, ry = 0, ax = 0, ay = 0;
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; dot.style.left = mx+'px'; dot.style.top = my+'px'; });
+(function cl(){rx+=(mx-rx)*.13;ry+=(my-ry)*.13;ax+=(mx-ax)*.06;ay+=(my-ay)*.06;ring.style.left=rx+'px';ring.style.top=ry+'px';aura.style.left=ax+'px';aura.style.top=ay+'px';requestAnimationFrame(cl)})();
+document.querySelectorAll('a,button,.pcard,.ecard').forEach(el=>{
+  el.addEventListener('mouseenter',()=>document.body.classList.add('hov'));
+  el.addEventListener('mouseleave',()=>document.body.classList.remove('hov'));
+});
+
+/* ═══════════════════════════════════════════════════════
+   THREE.JS — PIXELATED BLACK HOLE
+═══════════════════════════════════════════════════════ */
+const canvas = document.getElementById('bg');
+const W = window.innerWidth, H = window.innerHeight;
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(W, H);
+renderer.setClearColor(0x000000, 1);
+
+const scene  = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(65, W/H, 0.1, 4000);
+camera.position.set(0, 80, 550);
+camera.lookAt(30, -10, 0);
+
+// ─── HELPERS ───
+const mkPts = (count, buildFn, size, opacity, blend=true) => {
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(count*3), col = new Float32Array(count*3);
+  for(let i=0;i<count;i++) buildFn(i,pos,col);
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  geo.setAttribute('color',new THREE.BufferAttribute(col,3));
+  return new THREE.Points(geo, new THREE.PointsMaterial({
+    size, vertexColors:true, transparent:true, opacity,
+    blending: blend ? THREE.AdditiveBlending : THREE.NormalBlending,
+    sizeAttenuation:true
+  }));
+};
+
+// ─── STARFIELD ───
+scene.add(mkPts(3500, (i,p)=>{
+  p[i*3]=(Math.random()-.5)*3000;p[i*3+1]=(Math.random()-.5)*2000;p[i*3+2]=(Math.random()-.5)*2000;
+}, 0.9, 0.8));
+scene.add(mkPts(600, (i,p)=>{
+  p[i*3]=(Math.random()-.5)*2500;p[i*3+1]=(Math.random()-.5)*1500;p[i*3+2]=(Math.random()-.5)*1500;
+}, 2.2, 0.4));
+
+// ─── EVENT HORIZON ─── (occludes stars behind it)
+const bhGeo = new THREE.SphereGeometry(46, 64, 64);
+const bhMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+const bh = new THREE.Mesh(bhGeo, bhMat);
+scene.add(bh);
+
+// ─── PHOTON SPHERE RING ───
+const photonGeo = new THREE.TorusGeometry(52, 1.2, 16, 160);
+const photonMat = new THREE.MeshBasicMaterial({ color: 0xfff8e0, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+const photon = new THREE.Mesh(photonGeo, photonMat);
+photon.rotation.x = Math.PI * 0.5;
+scene.add(photon);
+
+// ─── GRAVITATIONAL LENSING RINGS ───
+for(let ri=0;ri<4;ri++){
+  const r = 54 + ri * 2.5;
+  const lg = new THREE.TorusGeometry(r, 0.4 - ri*0.07, 8, 180);
+  const lm = new THREE.MeshBasicMaterial({ color: 0xffe8a0, transparent:true, opacity:0.12-ri*0.025, blending:THREE.AdditiveBlending });
+  const lt = new THREE.Mesh(lg, lm);
+  lt.rotation.x = Math.PI * 0.5 + ri * 0.04;
+  scene.add(lt);
+}
+
+// ─── ACCRETION DISK (Keplerian differential rotation) ───
+const diskGroup = new THREE.Group();
+diskGroup.rotation.x = 0.42; // tilt ~24 degrees from face-on
+
+const ringDefs = [
+  { rMin:56,  rMax:78,  speed:0.020, count:2200, r:1.0, g:0.97, b:0.88, op:0.85, sz:1.6 }, // inner - hot white
+  { rMin:78,  rMax:108, speed:0.013, count:2800, r:1.0, g:0.70, b:0.25, op:0.75, sz:1.4 }, // orange-gold
+  { rMin:108, rMax:148, speed:0.009, count:3000, r:1.0, g:0.40, b:0.08, op:0.65, sz:1.3 }, // deep orange
+  { rMin:148, rMax:188, speed:0.006, count:2500, r:0.85,g:0.18, b:0.05, op:0.55, sz:1.2 }, // red
+  { rMin:188, rMax:240, speed:0.003, count:2000, r:0.60,g:0.08, b:0.04, op:0.45, sz:1.0 }, // dark red
+];
+
+const diskRings = [];
+ringDefs.forEach(def => {
+  const pts = mkPts(def.count, (i,p,c)=>{
+    const theta = Math.random() * Math.PI * 2;
+    const r = def.rMin + Math.pow(Math.random(), 0.7) * (def.rMax - def.rMin);
+    const ySpread = 4 * Math.exp(-(r - 56) / 100) + 1;
+    p[i*3]   = Math.cos(theta) * r;
+    p[i*3+1] = (Math.random() - 0.5) * ySpread;
+    p[i*3+2] = Math.sin(theta) * r;
+    // Doppler: approaching side (negative x when rotating) is brighter
+    const doppler = 0.75 + 0.25 * Math.sin(theta);
+    c[i*3]   = def.r * doppler;
+    c[i*3+1] = def.g * doppler;
+    c[i*3+2] = def.b * doppler;
+  }, def.sz, def.op);
+  pts.userData.speed = def.speed;
+  diskGroup.add(pts);
+  diskRings.push(pts);
+});
+scene.add(diskGroup);
+
+// ─── INNER DISK GLOW ───
+const innerGlow = mkPts(1200, (i,p,c)=>{
+  const theta = Math.random()*Math.PI*2;
+  const r = 47 + Math.random()*12;
+  p[i*3]=Math.cos(theta)*r; p[i*3+1]=(Math.random()-.5)*2; p[i*3+2]=Math.sin(theta)*r;
+  c[i*3]=1; c[i*3+1]=0.95; c[i*3+2]=0.80;
+}, 4.0, 0.6);
+diskGroup.add(innerGlow);
+
+// ─── RELATIVISTIC JETS ───
+const mkJet = (upward) => mkPts(1800, (i,p,c)=>{
+  const h = 55 + Math.random() * 360;
+  const spread = 0.025 + (h-55)/360 * 0.065;
+  const phi = Math.random() * Math.PI * 2;
+  const r = h * Math.tan(spread) * Math.random();
+  const t = h / 420;
+  p[i*3]   = Math.cos(phi) * r;
+  p[i*3+1] = upward ? h : -h;
+  p[i*3+2] = Math.sin(phi) * r;
+  c[i*3]   = 0.10 + t*0.1;
+  c[i*3+1] = 0.55 + (1-t)*0.3;
+  c[i*3+2] = 1.0;
+}, 2.5, 0.35);
+const jetUp = mkJet(true);
+const jetDn = mkJet(false);
+scene.add(jetUp); scene.add(jetDn);
+
+// ─── BH AMBIENT GLOW ───
+const aGeoO = new THREE.SphereGeometry(62, 16, 16);
+const aMatO = new THREE.MeshBasicMaterial({ color:0xff6010, transparent:true, opacity:0.04, side:THREE.BackSide, blending:THREE.AdditiveBlending });
+scene.add(new THREE.Mesh(aGeoO, aMatO));
+
+const aGeoB = new THREE.SphereGeometry(90, 16, 16);
+const aMatB = new THREE.MeshBasicMaterial({ color:0x2060ff, transparent:true, opacity:0.025, side:THREE.BackSide, blending:THREE.AdditiveBlending });
+scene.add(new THREE.Mesh(aGeoB, aMatB));
+
+// ─── ANIMATE ───
+let camMX=0, camMY=0, camRX=0, camRY=0;
+document.addEventListener('mousemove', e=>{
+  camMX = (e.clientX - W/2) * 0.00035;
+  camMY = (e.clientY - H/2) * 0.00035;
+});
+
+const shooters = [];
+function mkShooter(){
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(6);
+  const x = (Math.random()-.5)*2200, y = 200+Math.random()*400, z = (Math.random()-.5)*800-100;
+  const len = 80+Math.random()*120;
+  pos[0]=x; pos[1]=y; pos[2]=z; pos[3]=x+len; pos[4]=y+len*.15; pos[5]=z;
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const line = new THREE.Line(geo, new THREE.LineBasicMaterial({color:0xff9940,transparent:true,opacity:.7,blending:THREE.AdditiveBlending}));
+  line.userData={speed:4+Math.random()*5,life:1.0};
+  scene.add(line);
+  shooters.push(line);
+}
+setInterval(()=>{ if(shooters.length<4) mkShooter(); }, 4000);
+
+function animate(){
+  requestAnimationFrame(animate);
+  const t = Date.now() * 0.001;
+
+  // Camera sway
+  camRX += (camMY - camRX) * 0.007;
+  camRY += (camMX - camRY) * 0.007;
+  camera.rotation.x = camRX;
+  camera.rotation.y = camRY;
+
+  // Differential disk rotation
+  diskRings.forEach(r => { r.rotation.y += r.userData.speed; });
+  innerGlow.rotation.y += 0.03;
+
+  // Jet pulse
+  const jp = 0.28 + Math.abs(Math.sin(t*0.4))*0.12;
+  jetUp.material.opacity = jp; jetDn.material.opacity = jp;
+
+  // Photon ring shimmer
+  photon.material.opacity = 0.7 + Math.sin(t*1.2)*0.2;
+
+  // Shooting stars
+  for(let i=shooters.length-1;i>=0;i--){
+    shooters[i].position.x -= shooters[i].userData.speed*4;
+    shooters[i].position.y -= shooters[i].userData.speed*0.8;
+    shooters[i].userData.life -= 0.012;
+    shooters[i].material.opacity = shooters[i].userData.life * 0.7;
+    if(shooters[i].userData.life <= 0){ scene.remove(shooters[i]); shooters.splice(i,1); }
+  }
+
+  // Render directly — smooth, anti-aliased
+  renderer.render(scene, camera);
+}
+animate();
+
+window.addEventListener('resize', ()=>{
+  const nW = window.innerWidth, nH = window.innerHeight;
+  camera.aspect = nW/nH;
+  camera.updateProjectionMatrix();
+  renderer.setSize(nW, nH);
+});
+
+/* ═══════════════════════════════════════════════════════
+   PHYSICS DATA — 16 DISCIPLINES
+═══════════════════════════════════════════════════════ */
+const DATA = [
+  {
+  "id": 1,
+  "title": "Classical Mechanics",
+  "basic": "Macroscopic motion, forces, energy, and Newtonian laws.",
+  "tags": ["Kinematics","Dynamics","Rotation","Gravitation"],
+  "badge": "badge-physics",
+  "field": "Physics",
+  "concepts": [
+    {
+      "title": "Kinematics",
+      "desc": "Equations describing motion in straight lines, projectiles, and circular paths.",
+      "eqs": [
+        { "f": "v = dx/dt", "n": "Velocity", "x": "Rate of change of position.", "d": "Defines speed and direction of motion." },
+        { "f": "a = dv/dt", "n": "Acceleration", "x": "Rate of change of velocity.", "d": "Measures speeding up or slowing down." },
+        { "f": "v = u + at", "n": "Velocity-Time Relation", "x": "Final velocity after time t.", "d": "Used in uniformly accelerated motion." },
+        { "f": "s = ut + 1/2 at^2", "n": "Displacement-Time Relation", "x": "Distance covered in time t.", "d": "Predicts position under constant acceleration." },
+        { "f": "v^2 = u^2 + 2as", "n": "Velocity-Displacement Relation", "x": "Links velocity and displacement.", "d": "Useful in braking distance problems." },
+        { "f": "x = u cosθ · t", "n": "Projectile Horizontal Motion", "x": "Horizontal displacement.", "d": "Applies to sports and ballistics." },
+        { "f": "y = u sinθ · t - 1/2 g t^2", "n": "Projectile Vertical Motion", "x": "Vertical displacement.", "d": "Describes height variation under gravity." },
+        { "f": "T = 2u sinθ / g", "n": "Time of Flight", "x": "Total time projectile stays in air.", "d": "Used in trajectory calculations." },
+        { "f": "R = u^2 sin2θ / g", "n": "Range", "x": "Horizontal distance covered.", "d": "Maximum at θ = 45°." },
+        { "f": "H = u^2 sin^2θ / 2g", "n": "Maximum Height", "x": "Peak vertical displacement.", "d": "Important in projectile motion analysis." },
+        { "f": "v⃗(A/B) = v⃗A - v⃗B", "n": "Relative Velocity", "x": "Velocity of A relative to B.", "d": "Used in moving observer problems." },
+        { "f": "a_c = v^2/r = ω^2 r", "n": "Centripetal Acceleration", "x": "Acceleration towards center.", "d": "Keeps objects in circular motion." },
+        { "f": "v = ωr", "n": "Linear-Angular Velocity Relation", "x": "Links angular and linear speed.", "d": "Used in wheels and gears." }
+      ]
+    },
+    {
+      "title": "Newton’s Laws & Forces",
+      "desc": "Fundamental laws of motion and force decomposition.",
+      "eqs": [
+        { "f": "F = ma", "n": "Newton’s Second Law", "x": "Force equals mass times acceleration.", "d": "Basis of dynamics." },
+        { "f": "Fx = F cosθ, Fy = F sinθ", "n": "Force Components", "x": "Resolve force into axes.", "d": "Used in inclined plane problems." },
+        { "f": "W = mg", "n": "Weight", "x": "Force due to gravity.", "d": "Everyday weight measurement." },
+        { "f": "N = mg (flat), N = mg cosθ (incline)", "n": "Normal Force", "x": "Reaction force from surface.", "d": "Important in contact mechanics." },
+        { "f": "Parallel = mg sinθ, Perpendicular = mg cosθ", "n": "Inclined Plane Components", "x": "Weight resolved along incline.", "d": "Used in sliding block problems." }
+      ]
+    },
+    {
+      "title": "Friction",
+      "desc": "Resistive forces opposing motion.",
+      "eqs": [
+        { "f": "fs ≤ μs N", "n": "Static Friction", "x": "Prevents motion until threshold.", "d": "Keeps objects at rest." },
+        { "f": "fk = μk N", "n": "Kinetic Friction", "x": "Opposes sliding motion.", "d": "Applies once motion begins." },
+        { "f": "f = μ mg cosθ", "n": "Friction on Incline", "x": "Frictional force on slope.", "d": "Used in ramp problems." }
+      ]
+    },
+    {
+      "title": "System of Particles",
+      "desc": "Collective motion of multiple bodies.",
+      "eqs": [
+        { "f": "x_cm = (Σ mi xi)/(Σ mi)", "n": "Center of Mass Position", "x": "Weighted average of positions.", "d": "Defines effective point of mass." },
+        { "f": "v_cm = (Σ mi vi)/(Σ mi)", "n": "Center of Mass Velocity", "x": "Weighted average of velocities.", "d": "Describes group motion." },
+        { "f": "p = mv", "n": "Momentum", "x": "Product of mass and velocity.", "d": "Conserved in isolated systems." },
+        { "f": "J = F Δt = Δp", "n": "Impulse", "x": "Force applied over time.", "d": "Used in collisions and airbags." },
+        { "f": "Σ pi = Σ pf", "n": "Conservation of Momentum", "x": "Total momentum remains constant.", "d": "Applies in collisions and explosions." }
+      ]
+    },
+    {
+      "title": "Rotational Motion",
+      "desc": "Equations for spinning and rotating bodies.",
+      "eqs": [
+        { "f": "ω = ω0 + αt", "n": "Angular Velocity-Time Relation", "x": "Final angular velocity.", "d": "Analogous to linear motion." },
+        { "f": "θ = ω0 t + 1/2 αt^2", "n": "Angular Displacement", "x": "Angle rotated in time t.", "d": "Used in rotational kinematics." },
+        { "f": "ω^2 = ω0^2 + 2αθ", "n": "Angular Velocity-Displacement Relation", "x": "Links angular velocity and displacement.", "d": "Useful in rotational acceleration problems." },
+        { "f": "τ = rF sinθ", "n": "Torque", "x": "Turning effect of force.", "d": "Basis of levers and machines." },
+        { "f": "I = 1/12 ML^2 (rod center), 1/3 ML^2 (rod end), 1/2 MR^2 (disk), MR^2 (ring), 2/5 MR^2 (sphere)", "n": "Moment of Inertia", "x": "Resistance to rotation.", "d": "Depends on mass distribution." },
+        { "f": "L = Iω, L = mvr", "n": "Angular Momentum", "x": "Rotational analogue of momentum.", "d": "Conserved if net torque = 0." },
+        { "f": "v = ωR", "n": "Rolling Condition", "x": "No slipping condition.", "d": "Applies to wheels and cylinders." }
+      ]
+    },
+    {
+      "title": "Gravitation",
+      "desc": "Universal law of attraction between masses.",
+      "eqs": [
+        { "f": "F = G m1 m2 / r^2", "n": "Newton’s Law of Gravitation", "x": "Force between two masses.", "d": "Basis of planetary motion." },
+        { "f": "gh = g (R/(R+h))^2", "n": "Gravity at Height", "x": "Variation of g with altitude.", "d": "Used in satellite calculations." },
+        { "f": "vo = √(GM/r)", "n": "Orbital Velocity", "x": "Speed for stable orbit.", "d": "Applies to satellites." },
+        { "f": "ve = √(2GM/R)", "n": "Escape Velocity", "x": "Minimum speed to leave planet.", "d": "Used in rocket launches." }
+      ]
+    }
+  ]
+},
+  {id:2,
+ title:"Thermodynamics",
+ basic:"Heat, work, entropy, and the statistical nature of energy.",
+ tags:["Entropy","Carnot","Boltzmann"],
+ badge:"badge-physics",
+ field:"Physics",
+ concepts:[
+   {
+     title:"The Four Laws",
+     desc:"The pillars governing energy transfer and the direction of time.",
+     eqs:[
+       {f:"ΔQ = ΔU + W", n:"First Law", x:"Energy conservation principle.", d:"Heat added goes into internal energy or work.\nΔQ: heat added\nΔU: change in internal energy\nW: work done by system"},
+       {f:"ΔS ≥ 0", n:"Second Law", x:"Entropy of isolated system increases.", d:"Defines irreversibility and efficiency limits.\nClausius inequality: ΔS ≥ δQ/T"},
+       {f:"η_max = 1 - T_c/T_h", n:"Carnot Efficiency", x:"Maximum efficiency between two reservoirs.", d:"η = W/Q_h.\nReversible engine: Q_c/Q_h = T_c/T_h.\nSubstitute to get Carnot efficiency."},
+       {f:"S → constant as T → 0 K", n:"Third Law", x:"Entropy approaches minimum at absolute zero.", d:"Absolute zero cannot be reached in finite steps."}
+     ]
+   },
+   {
+     title:"Temperature Scales",
+     desc:"Conversions between Celsius, Kelvin, and Fahrenheit.",
+     eqs:[
+       {f:"K = °C + 273.15", n:"Celsius to Kelvin", x:"Absolute temperature scale.", d:"Used in scientific calculations."},
+       {f:"F = (9/5)C + 32", n:"Celsius to Fahrenheit", x:"Conversion to Fahrenheit scale.", d:"Common in daily life in some countries."}
+     ]
+   },
+   {
+     title:"Heat",
+     desc:"Heat transfer and phase change equations.",
+     eqs:[
+       {f:"Q = mcΔT", n:"Heat Transfer", x:"Heat required for temperature change.", d:"Applies to heating/cooling substances."},
+       {f:"Q = mL", n:"Phase Change", x:"Heat required for phase transition.", d:"Used in melting, boiling, condensation."}
+     ]
+   },
+   {
+     title:"Thermal Expansion",
+     desc:"Expansion of solids with temperature.",
+     eqs:[
+       {f:"ΔL = L0 αΔT", n:"Linear Expansion", x:"Change in length.", d:"Applies to rods, rails."},
+       {f:"ΔA = A0 βΔT", n:"Area Expansion", x:"Change in area.", d:"Applies to plates, surfaces."},
+       {f:"ΔV = V0 γΔT", n:"Volume Expansion", x:"Change in volume.", d:"Applies to solids/liquids."}
+     ]
+   },
+   {
+     title:"Ideal Gas Equation",
+     desc:"Relation between pressure, volume, and temperature.",
+     eqs:[
+       {f:"PV = nRT", n:"Ideal Gas Law", x:"Equation of state for ideal gases.", d:"Used in gas problems and thermodynamic cycles."}
+     ]
+   },
+   {
+     title:"Kinetic Theory of Gases",
+     desc:"Microscopic model of gases.",
+     eqs:[
+       {f:"P = 1/3 ρ (c^2)̄", n:"Pressure Equation", x:"Pressure due to molecular collisions.", d:"Explains macroscopic pressure."},
+       {f:"K̄ = 3/2 kT", n:"Average Kinetic Energy", x:"Energy per molecule.", d:"Links temperature to molecular motion."},
+       {f:"v_rms = √(3RT/M)", n:"Root Mean Square Speed", x:"Effective molecular speed.", d:"Used in gas dynamics."},
+       {f:"v_avg = √(8RT/πM)", n:"Average Speed", x:"Mean molecular speed.", d:"Statistical measure of motion."},
+       {f:"v_mp = √(2RT/M)", n:"Most Probable Speed", x:"Speed most molecules have.", d:"Peak of Maxwell distribution."}
+     ]
+   },
+   {
+     title:"First Law Applications",
+     desc:"Heat, work, and internal energy relations.",
+     eqs:[
+       {f:"ΔU = nCv ΔT", n:"Internal Energy Change", x:"Change in internal energy.", d:"Applies to ideal gases."},
+       {f:"Q = nCv ΔT", n:"Constant Volume Heat", x:"Heat at constant volume.", d:"No work done."},
+       {f:"Q = nCp ΔT", n:"Constant Pressure Heat", x:"Heat at constant pressure.", d:"Work is done by expansion."}
+     ]
+   },
+   {
+     title:"Work Done by Gas",
+     desc:"Work in different thermodynamic processes.",
+     eqs:[
+       {f:"W = PΔV", n:"Isobaric Process", x:"Work at constant pressure.", d:"Expansion/compression at fixed pressure."},
+       {f:"W = nRT ln(Vf/Vi)", n:"Isothermal Process", x:"Work at constant temperature.", d:"Applies to slow expansions."},
+       {f:"PV^γ = constant", n:"Adiabatic Relation", x:"No heat exchange.", d:"Used in insulated systems."},
+       {f:"W = (PiVi - PfVf)/(γ-1)", n:"Adiabatic Work", x:"Work in adiabatic process.", d:"Applies to rapid compression/expansion."}
+     ]
+   },
+   {
+     title:"Heat Engines & Efficiency",
+     desc:"Performance of thermal machines.",
+     eqs:[
+       {f:"η = W/QH", n:"Efficiency", x:"Work per heat input.", d:"General efficiency of engines."},
+       {f:"η_Carnot = 1 - TC/TH", n:"Carnot Efficiency", x:"Maximum possible efficiency.", d:"Sets theoretical limit for heat engines."}
+     ]
+   }
+ ]
+},
+
+  {id:3,
+ title:"Electromagnetism",
+ basic:"Electric and magnetic fields, unified by Maxwell into a theory of light.",
+ tags:["Maxwell","Light","Fields"],
+ badge:"badge-physics",
+ field:"Physics",
+ concepts:[
+   {
+     title:"Electrostatics",
+     desc:"Charges, forces, and fields at rest.",
+     eqs:[
+       {f:"q = ne", n:"Quantization of Charge", x:"Charge exists in discrete multiples of e.", d:"e = 1.6×10⁻¹⁹ C.\nq is always an integer multiple of e."},
+       {f:"F = (1/4π ε₀)(q₁q₂/r²) r̂", n:"Coulomb’s Law", x:"Force between two point charges.", d:"Magnitude ∝ product of charges, inversely ∝ square of distance.\nε₀ = permittivity of free space."},
+       {f:"E = F/q", n:"Electric Field", x:"Force per unit charge.", d:"For point charge: E = (1/4π ε₀)(q/r²) r̂."},
+       {f:"Φ_E = E·A", n:"Electric Flux", x:"Field lines through a surface.", d:"Basis for Gauss’s Law."},
+       {f:"∮E·dA = Q_enc/ε₀", n:"Gauss’s Law", x:"Flux through closed surface ∝ enclosed charge.", d:"Differential form: ∇·E = ρ/ε₀.\nApplications: infinite wire, plane, spherical shell."},
+       {f:"V = -∫E·dl", n:"Electric Potential", x:"Work per unit charge.", d:"For point charge: V = (1/4π ε₀)(q/r).\nRelation: E = -∇V."},
+       {f:"C = Q/V", n:"Capacitance", x:"Charge stored per potential difference.", d:"Parallel plate: C = ε₀A/d.\nWith dielectric: C = εA/d.\nEnergy stored: U = ½CV².\nEnergy density: u = ½ε₀E²."}
+     ]
+   },
+   {
+     title:"Current Electricity",
+     desc:"Flow of charges and resistance.",
+     eqs:[
+       {f:"I = dQ/dt", n:"Current", x:"Rate of charge flow.", d:"Unit: Ampere (A)."},
+       {f:"J = I/A", n:"Current Density", x:"Current per unit area.", d:"Microscopic: J = nqvd."},
+       {f:"V = IR", n:"Ohm’s Law", x:"Voltage proportional to current.", d:"Microscopic form: J = σE.\nResistivity: ρ = 1/σ."},
+       {f:"R = ρL/A", n:"Resistance", x:"Opposition to current flow.", d:"Depends on material, length, and cross-sectional area."}
+     ]
+   },
+   {
+     title:"Magnetostatics",
+     desc:"Magnetic fields due to steady currents.",
+     eqs:[
+       {f:"dB = (μ₀/4π)(I dl × r̂ / r²)", n:"Biot–Savart Law", x:"Field due to current element.", d:"Vector law for magnetic field calculation."},
+       {f:"B = μ₀I/2πr", n:"Long Straight Wire", x:"Magnetic field around wire.", d:"Circular field lines around wire."},
+       {f:"∮B·dl = μ₀I_enc", n:"Ampere’s Law", x:"Circulation of B ∝ enclosed current.", d:"Differential form: ∇×B = μ₀J."},
+       {f:"F = q(E + v×B)", n:"Lorentz Force", x:"Force on moving charge.", d:"Explains auroras, plasma confinement."},
+       {f:"F = IL×B", n:"Force on Current", x:"Force on wire in magnetic field.", d:"Basis of electric motors."}
+     ]
+   },
+   {
+     title:"Electromagnetic Induction",
+     desc:"Changing magnetic flux induces EMF.",
+     eqs:[
+       {f:"Φ_B = B·A", n:"Magnetic Flux", x:"Field through a surface.", d:"Unit: Weber (Wb)."},
+       {f:"E = -dΦ_B/dt", n:"Faraday’s Law", x:"Induced EMF opposes flux change.", d:"Differential form: ∇×E = -∂B/∂t."},
+       {f:"Φ = LI", n:"Inductor", x:"Flux linkage proportional to current.", d:"Energy stored: U = ½LI²."}
+     ]
+   },
+   {
+     title:"Maxwell’s Equations",
+     desc:"Unified laws of electromagnetism.",
+     eqs:[
+       {f:"∇·E = ρ/ε₀", n:"Gauss Law (Electric)", x:"Charges produce electric fields.", d:"Integral form: ∮E·dA = Q_enc/ε₀."},
+       {f:"∇·B = 0", n:"Gauss Law (Magnetism)", x:"No magnetic monopoles.", d:"Magnetic field lines are continuous."},
+       {f:"∇×E = -∂B/∂t", n:"Faraday’s Law", x:"Changing B induces E.", d:"Basis of transformers and generators."},
+       {f:"∇×B = μ₀J + μ₀ε₀∂E/∂t", n:"Ampere–Maxwell Law", x:"Currents and changing E produce B.", d:"Displacement current term ensures continuity."}
+     ]
+   },
+   {
+     title:"Electromagnetic Waves",
+     desc:"Light as oscillating E and B fields.",
+     eqs:[
+       {f:"∇²E = μ₀ε₀ ∂²E/∂t²", n:"Wave Equation", x:"E propagates as a wave.", d:"Wave speed: c = 1/√(μ₀ε₀)."},
+       {f:"E = E₀ sin(kx - ωt)", n:"Wave Form", x:"Sinusoidal electric field.", d:"k = 2π/λ, ω = 2πf.\nRelation: c = λf."},
+       {f:"E = cB", n:"Field Relation", x:"Electric and magnetic fields linked.", d:"In EM waves, E and B are perpendicular."},
+       {f:"u = ε₀E²", n:"Energy Density", x:"Energy stored in fields.", d:"Magnetic contribution similar."},
+       {f:"S = (1/μ₀)(E×B)", n:"Poynting Vector", x:"Energy flux of EM waves.", d:"Direction of energy propagation."}
+     ]
+   },
+   {
+     title:"Advanced Concepts",
+     desc:"Charged particle motion in fields.",
+     eqs:[
+       {f:"r_L = mv/qB", n:"Larmor Radius", x:"Radius of circular motion.", d:"Important in plasma confinement."},
+       {f:"ω = qB/m", n:"Cyclotron Frequency", x:"Frequency of circular motion.", d:"Basis of cyclotron accelerators."},
+       {f:"ω_p = √(ne²/mε₀)", n:"Plasma Frequency", x:"Natural oscillation frequency of plasma.", d:"Relevant in astrophysics and fusion."}
+     ]
+   },
+   {
+     title:"Astrophysical Applications",
+     desc:"Electromagnetism in cosmic phenomena.",
+     eqs:[
+       {f:"—", n:"Solar Flares", x:"Magnetic reconnection releases energy.", d:"Explains bursts of radiation from Sun."},
+       {f:"—", n:"Magnetospheres", x:"Planetary magnetic shields.", d:"Protect Earth from solar wind."},
+       {f:"—", n:"Synchrotron Radiation", x:"Relativistic electrons spiraling in B fields.", d:"Observed in pulsars and galaxies."},
+       {f:"—", n:"Accretion Disks", x:"Magnetic fields around black holes.", d:"Drive jets and energy release."}
+     ]
+   }
+ ]
+},
+
+  {id:4,
+ title:"Special Relativity",
+ basic:"The physics of high velocities — space, time, and mass reimagined.",
+ tags:["Lorentz","Spacetime","Einstein"],
+ badge:"badge-physics",
+ field:"Physics",
+ concepts:[
+   {
+     title:"Foundations",
+     desc:"Einstein’s 1905 theory built on two postulates: relativity of laws and constancy of light speed.",
+     eqs:[
+       {f:"c = 3×10⁸ m/s", n:"Constancy of Light Speed", x:"Light speed is invariant in all inertial frames.", d:"Contradicts classical velocity addition; verified by experiments."},
+       {f:"Principle of Relativity", n:"First Postulate", x:"Laws of physics identical in all inertial frames.", d:"No experiment can distinguish absolute rest."}
+     ]
+   },
+   {
+     title:"Lorentz Transformations",
+     desc:"Coordinate relations between two inertial frames moving at velocity v.",
+     eqs:[
+       {f:"γ = 1/√(1-v²/c²)", n:"Lorentz Factor", x:"Quantifies relativistic effects.", d:"Appears in time dilation, length contraction, momentum, and energy."},
+       {f:"x' = γ(x - vt)", n:"Space Transformation", x:"Position in moving frame.", d:"Derived from invariance of light speed."},
+       {f:"t' = γ(t - vx/c²)", n:"Time Transformation", x:"Time in moving frame.", d:"Leads to relativity of simultaneity."}
+     ]
+   },
+   {
+     title:"Relativistic Effects",
+     desc:"Consequences of Lorentz transformations.",
+     eqs:[
+       {f:"Δt = γΔt₀", n:"Time Dilation", x:"Moving clocks tick slower.", d:"Confirmed by muon decay experiments."},
+       {f:"L = L₀/γ", n:"Length Contraction", x:"Objects shorten along motion.", d:"Only in direction of velocity."},
+       {f:"Δt' = γ(-vΔx/c²)", n:"Relativity of Simultaneity", x:"Events simultaneous in one frame not in another.", d:"If Δx ≠ 0, then Δt' ≠ 0."}
+     ]
+   },
+   {
+     title:"Spacetime & Minkowski",
+     desc:"Geometry of spacetime unifying space and time.",
+     eqs:[
+       {f:"s² = c²t² - x² - y² - z²", n:"Spacetime Interval", x:"Invariant under Lorentz transformations.", d:"Timelike (s²>0), spacelike (s²<0), lightlike (s²=0)."},
+       {f:"x^μ = (ct, x, y, z)", n:"4-Vector", x:"Spacetime coordinates.", d:"Metric η_μν = diag(1,-1,-1,-1)."},
+       {f:"s² = η_μν x^μ x^ν", n:"Invariant Interval", x:"Lorentz invariant scalar.", d:"Foundation of relativistic geometry."}
+     ]
+   },
+   {
+     title:"Dynamics",
+     desc:"Relativistic momentum, energy, and velocity addition.",
+     eqs:[
+       {f:"u = (u' + v)/(1 + u'v/c²)", n:"Velocity Addition", x:"Relativistic formula ensures u<c.", d:"Fixes classical addition failure."},
+       {f:"p = γmv", n:"Relativistic Momentum", x:"Momentum grows with γ.", d:"Explains why particles resist reaching c."},
+       {f:"E = γmc²", n:"Total Energy", x:"Includes rest and kinetic energy.", d:"Rest energy: E₀ = mc².\nKinetic: K = (γ-1)mc²."},
+       {f:"E² = (pc)² + (mc²)²", n:"Energy–Momentum Relation", x:"Unifies energy and momentum.", d:"For photons (m=0): E=pc."},
+       {f:"P^μ = (E/c, p)", n:"4-Momentum", x:"Energy-momentum as 4-vector.", d:"Invariant: P^μP_μ = m²c²."}
+     ]
+   },
+   {
+     title:"Relativistic Optics",
+     desc:"Light frequency and direction in moving frames.",
+     eqs:[
+       {f:"f = f₀√((1+β)/(1-β))", n:"Relativistic Doppler Effect", x:"Frequency shift due to motion.", d:"Explains redshift/blueshift in astronomy."},
+       {f:"cosθ' = (cosθ - β)/(1 - βcosθ)", n:"Aberration of Light", x:"Change in apparent direction.", d:"Important in astrophysical observations."}
+     ]
+   },
+   {
+     title:"Paradoxes & Advanced Tools",
+     desc:"Conceptual puzzles and elegant mathematical methods.",
+     eqs:[
+       {f:"τ = ∫√(1 - v²/c²) dt", n:"Twin Paradox Resolution", x:"Traveling twin ages less.", d:"Proper time integral explains asymmetry."},
+       {f:"tanhφ = β", n:"Rapidity", x:"Hyperbolic angle parameter.", d:"Simplifies velocity addition: φ additive.\nγ = coshφ."}
+     ]
+   },
+   {
+     title:"Astrophysical Applications",
+     desc:"Special relativity in high-energy astrophysics.",
+     eqs:[
+       {f:"—", n:"Relativistic Jets", x:"Matter ejected near c.", d:"Observed in quasars and AGNs."},
+       {f:"—", n:"Synchrotron Radiation", x:"Electrons spiraling in B fields.", d:"Explains radio emissions."},
+       {f:"—", n:"Cosmic Rays", x:"Particles at relativistic speeds.", d:"Require relativistic momentum-energy."},
+       {f:"—", n:"Gamma Ray Bursts", x:"Extreme relativistic explosions.", d:"Relativity explains observed timescales."},
+       {f:"—", n:"Accretion Disks", x:"Matter near black holes.", d:"Special relativity governs inner disk dynamics."}
+     ]
+   }
+ ]
+},
+  {id:5,
+ title:"General Relativity",
+ basic:"Gravity as spacetime curvature — Einstein’s geometric theory of gravitation.",
+ tags:["Einstein","Curvature","Spacetime"],
+ badge:"badge-physics",
+ field:"Physics",
+ concepts:[
+   {
+     title:"Foundations",
+     desc:"Why Newtonian gravity fails and how GR replaces force with geometry.",
+     eqs:[
+       {f:"F = GMm/r²", n:"Newtonian Gravity", x:"Inverse-square law of attraction.", d:"Fails for Mercury perihelion, not Lorentz invariant, instantaneous action at distance."},
+       {f:"Gravity = Curvature of Spacetime", n:"Einstein’s Insight", x:"Mass-energy curves spacetime.", d:"Matter tells spacetime how to curve; curvature tells matter how to move."}
+     ]
+   },
+   {
+     title:"Spacetime Geometry",
+     desc:"Metrics define distances and geometry in curved spacetime.",
+     eqs:[
+       {f:"ds² = c²dt² - dx² - dy² - dz²", n:"Minkowski Metric", x:"Flat spacetime of SR.", d:"Special relativity geometry."},
+       {f:"ds² = g_μν dx^μ dx^ν", n:"General Metric", x:"Curved spacetime interval.", d:"g_μν is metric tensor; defines geometry and curvature."}
+     ]
+   },
+   {
+     title:"Equivalence Principle",
+     desc:"Locally, gravity indistinguishable from acceleration.",
+     eqs:[
+       {f:"—", n:"Equivalence Principle", x:"Free fall physics looks like SR.", d:"Foundation of curved spacetime concept."}
+     ]
+   },
+   {
+     title:"Connections & Geodesics",
+     desc:"Christoffel symbols and geodesic motion.",
+     eqs:[
+       {f:"Γ^λ_{μν} = ½ g^{λσ}(∂_μ g_{νσ} + ∂_ν g_{μσ} - ∂_σ g_{μν})", n:"Christoffel Symbols", x:"Connection coefficients.", d:"Not tensors; represent gravitational force-like terms."},
+       {f:"d²x^λ/dτ² + Γ^λ_{μν}(dx^μ/dτ)(dx^ν/dτ) = 0", n:"Geodesic Equation", x:"Motion in curved spacetime.", d:"Replaces F=ma; particles follow geodesics."}
+     ]
+   },
+   {
+     title:"Curvature",
+     desc:"Riemann tensor, Ricci tensor, and scalar curvature.",
+     eqs:[
+       {f:"R^σ_{μνρ} = ∂_μ Γ^σ_{νρ} - ∂_ν Γ^σ_{μρ} + Γ^σ_{μλ}Γ^λ_{νρ} - Γ^σ_{νλ}Γ^λ_{μρ}", n:"Riemann Tensor", x:"Measures curvature.", d:"Zero → flat spacetime."},
+       {f:"R_{μν} = R^λ_{μλν}", n:"Ricci Tensor", x:"Contraction of Riemann.", d:"Simplifies curvature description."},
+       {f:"R = g^{μν}R_{μν}", n:"Ricci Scalar", x:"Scalar curvature.", d:"Single number describing curvature."}
+     ]
+   },
+   {
+     title:"Einstein Field Equations",
+     desc:"Core equations linking geometry and matter.",
+     eqs:[
+       {f:"R_{μν} - ½ g_{μν}R = (8πG/c⁴) T_{μν}", n:"EFE", x:"Geometry = matter.", d:"Left side: curvature; right side: stress-energy tensor."}
+     ]
+   },
+   {
+     title:"Stress-Energy Tensor",
+     desc:"Matter and energy content of spacetime.",
+     eqs:[
+       {f:"T_{μν} = (ρc² + p)u_μ u_ν - p g_{μν}", n:"Perfect Fluid", x:"Energy density, pressure, momentum.", d:"ρ = density, p = pressure, u_μ = 4-velocity."}
+     ]
+   },
+   {
+     title:"Solutions",
+     desc:"Exact solutions of Einstein’s equations.",
+     eqs:[
+       {f:"ds² = (1 - 2GM/rc²)c²dt² - (1 - 2GM/rc²)⁻¹dr² - r²dΩ²", n:"Schwarzschild Metric", x:"Spherical mass solution.", d:"Defines event horizon at r_s = 2GM/c²."},
+       {f:"—", n:"Kerr Metric", x:"Rotating black hole solution.", d:"Important for accretion disks and jets."}
+     ]
+   },
+   {
+     title:"Predictions of GR",
+     desc:"Observable phenomena explained by GR.",
+     eqs:[
+       {f:"—", n:"Mercury Perihelion", x:"Explains orbital anomaly.", d:"Newtonian gravity fails here."},
+       {f:"t = t₀/√(1 - 2GM/rc²)", n:"Gravitational Time Dilation", x:"Clocks run slower near mass.", d:"Verified experimentally."},
+       {f:"Δf/f = ΔΦ/c²", n:"Gravitational Redshift", x:"Frequency shift due to gravity.", d:"Light loses energy climbing out of gravity well."},
+       {f:"θ = 4GM/(rc²)", n:"Light Bending", x:"Deflection near mass.", d:"Confirmed in 1919 eclipse."}
+     ]
+   },
+   {
+     title:"Gravitational Waves",
+     desc:"Ripples in spacetime curvature.",
+     eqs:[
+       {f:"g_{μν} = η_{μν} + h_{μν}", n:"Perturbation", x:"Small deviations from flat metric.", d:"Wave equation: □h_{μν} = 0.\nDetected by LIGO (2015)."}
+     ]
+   },
+   {
+     title:"Cosmology",
+     desc:"GR applied to the universe.",
+     eqs:[
+       {f:"(ȧ/a)² = (8πG/3)ρ - k/a² + Λ/3", n:"Friedmann Equation", x:"Expansion of universe.", d:"a(t) = scale factor; k = curvature; Λ = cosmological constant."}
+     ]
+   },
+   {
+     title:"Advanced Concepts",
+     desc:"Mathematical structures in GR.",
+     eqs:[
+       {f:"∇_μ V_ν", n:"Covariant Derivative", x:"Differentiation in curved space.", d:"Accounts for curvature."},
+       {f:"∇_μ G^{μν} = 0", n:"Bianchi Identity", x:"Conservation law.", d:"Ensures consistency of EFE."},
+       {f:"G_{μν} = R_{μν} - ½ g_{μν}R", n:"Einstein Tensor", x:"Curvature tensor in EFE.", d:"Encodes geometry of spacetime."}
+     ]
+   },
+   {
+     title:"Astrophysical Applications",
+     desc:"GR in high-energy astrophysics.",
+     eqs:[
+       {f:"—", n:"Black Holes", x:"Event horizons and singularities.", d:"Predicted by Schwarzschild and Kerr metrics."},
+       {f:"—", n:"Neutron Stars", x:"Dense stellar remnants.", d:"Require GR for structure."},
+       {f:"—", n:"Gravitational Lensing", x:"Light bending by mass.", d:"Used to detect dark matter."},
+       {f:"—", n:"Cosmology", x:"Expanding universe models.", d:"Friedmann equations govern dynamics."},
+       {f:"—", n:"Relativistic Jets", x:"High-speed plasma ejections.", d:"Powered by GR effects near black holes."}
+     ]
+   }
+ ]
+},
+  {id:6,
+ title:"Quantum Mechanics",
+ basic:"The formal mathematical framework of microscopic physics.",
+ tags:["Hilbert","Schrödinger","Feynman"],
+ badge:"badge-physics",
+ field:"Physics",
+ concepts:[
+   {
+     title:"Hilbert Space",
+     desc:"Quantum states live in complex vector spaces with inner products.",
+     eqs:[
+       {f:"H = L²(R³)", n:"State Space", x:"Square-integrable functions define states.", d:"Wavefunctions ψ(x) ∈ L²(R³)."},
+       {f:"⟨ϕ|ψ⟩ = ∫ϕ*(x)ψ(x) d³x", n:"Inner Product", x:"Defines probability amplitudes.", d:"Ensures normalization and orthogonality."},
+       {f:"∑|n⟩⟨n| = I", n:"Completeness", x:"Basis spans Hilbert space.", d:"Discrete and continuous bases possible."}
+     ]
+   },
+   {
+     title:"Dynamics",
+     desc:"Time evolution via Schrödinger equation and path integrals.",
+     eqs:[
+       {f:"S = ∫dt ⟨ψ|(iℏ d/dt - Ĥ)|ψ⟩", n:"Action Principle", x:"Stationary action → Schrödinger equation.", d:"Variational derivation of quantum dynamics."},
+       {f:"⟨xf,tf|xi,ti⟩ = ∫D[x(t)] e^{iS[x]/ℏ}", n:"Path Integral", x:"Sum over all paths.", d:"Classical limit ℏ→0 gives stationary path."}
+     ]
+   },
+   {
+     title:"Scattering Theory",
+     desc:"Quantum description of collisions and cross sections.",
+     eqs:[
+       {f:"|ψ±⟩ = |ϕ⟩ + (1/(E-H₀±iϵ))V|ψ±⟩", n:"Lippmann–Schwinger", x:"Formal scattering states.", d:"Foundation of scattering amplitudes."},
+       {f:"dσ/dΩ = |f(θ)|²", n:"Cross Section", x:"Probability distribution of scattering angles.", d:"Measured in experiments."},
+       {f:"f(θ) = -(2m/4πℏ²) ∫ e^{-iq·r} V(r) d³r", n:"Born Approximation", x:"First-order scattering amplitude.", d:"Valid for weak potentials."}
+     ]
+   },
+   {
+     title:"Degeneracy Pressure",
+     desc:"Quantum statistics in astrophysical contexts.",
+     eqs:[
+       {f:"p_F = ℏ(3π²n)^{1/3}", n:"Fermi Momentum", x:"Momentum at Fermi surface.", d:"Defines degeneracy pressure."},
+       {f:"P = (ℏ²/5m)(3π²)^{2/3} n^{5/3}", n:"Non-relativistic Pressure", x:"Stabilizes white dwarfs.", d:"Leads to Chandrasekhar limit."},
+       {f:"P ∝ n^{4/3}", n:"Relativistic Limit", x:"Pressure scaling at high density.", d:"Critical for neutron stars."}
+     ]
+   }
+ ]
+},
+
+  {id:7,
+ title:"Stellar Astrophysics",
+ basic:"The physics of stellar interiors, nuclear fusion, and compact objects.",
+ tags:["Fusion","Polytropes","Neutron Stars"],
+ badge:"badge-physics",
+ field:"Astrophysics",
+ concepts:[
+   {
+     title:"Nuclear Reactions",
+     desc:"Fusion rates and Gamow peak.",
+     eqs:[
+       {f:"r = n₁n₂⟨σv⟩", n:"Reaction Rate", x:"Rate per unit volume.", d:"Depends on cross section and velocity distribution."},
+       {f:"⟨σv⟩ = ∫σ(E) v f(E) dE", n:"Thermal Average", x:"Average over Maxwell distribution.", d:"Determines stellar fusion rates."},
+       {f:"E_G = [(πZ₁Z₂e²)²m/(2ℏ²)(kT)²]^{1/3}", n:"Gamow Peak", x:"Effective fusion energy.", d:"Explains tunneling through Coulomb barrier."}
+     ]
+   },
+   {
+     title:"Polytropic Models",
+     desc:"Simplified stellar structure equations.",
+     eqs:[
+       {f:"P = Kρ^{1+1/n}", n:"Polytropic EOS", x:"Pressure-density relation.", d:"Leads to Lane–Emden equation."},
+       {f:"(1/ξ²)(d/dξ)(ξ² dθ/dξ) = -θ^n", n:"Lane–Emden Equation", x:"Dimensionless stellar structure.", d:"Solutions approximate star profiles."}
+     ]
+   },
+   {
+     title:"Stability",
+     desc:"Criteria for gravitational collapse.",
+     eqs:[
+       {f:"Γ₁ = (∂lnP/∂lnρ)_ad", n:"Adiabatic Index", x:"Response of pressure to density.", d:"Stability requires Γ₁ > 4/3."}
+     ]
+   },
+   {
+     title:"Neutron Stars",
+     desc:"Equation of state and maximum mass.",
+     eqs:[
+       {f:"dP/dr = -(G(ρ+P/c²)(M+4πr³P/c²))/(r(r-2GM/c²))", n:"TOV Equation", x:"Hydrostatic equilibrium in GR.", d:"Determines maximum neutron star mass."}
+     ]
+   }
+ ]
+},
+
+{id:8,
+ title:"Cosmology",
+ basic:"The physics of the universe’s origin, evolution, and structure.",
+ tags:["CMB","Inflation","Dark Matter"],
+ badge:"badge-physics",
+ field:"Astrophysics",
+ concepts:[
+   {
+     title:"Boltzmann Equation",
+     desc:"Evolution of distribution functions.",
+     eqs:[
+       {f:"df/dt = C[f]", n:"Photon Boltzmann Equation", x:"Collision term governs evolution.", d:"Used in CMB anisotropy calculations."}
+     ]
+   },
+   {
+     title:"Power Spectrum",
+     desc:"Statistical description of density fluctuations.",
+     eqs:[
+       {f:"δ(x) = (ρ(x)-ρ̄)/ρ̄", n:"Density Contrast", x:"Fractional overdensity.", d:"Fourier transform defines spectrum."},
+       {f:"P(k) = ⟨|δ_k|²⟩", n:"Power Spectrum", x:"Variance in Fourier space.", d:"Scale-invariant: P(k) ∝ k^{n_s}, with n_s ≈ 0.96."}
+     ]
+   },
+   {
+     title:"Inflation",
+     desc:"Early universe accelerated expansion.",
+     eqs:[
+       {f:"ϕ¨ + 3Hϕ˙ + V'(ϕ) = 0", n:"Scalar Field Equation", x:"Dynamics of inflaton field.", d:"Slow-roll conditions drive inflation."},
+       {f:"ϵ = (M_Pl²/2)(V'/V)²", n:"Slow-Roll Parameter", x:"Condition for inflation.", d:"Inflation requires ϵ ≪ 1."}
+     ]
+   }
+ ]
+},
+  {id:9,title:"Gravitational Wave Astronomy",basic:"Ripples in spacetime detected by kilometer-scale interferometers.",tags:["LIGO","Chirp","Mergers"],badge:"badge-astro",field:"Astrophysics",
+   concepts:[
+    {title:"Detection & Source Physics",desc:"The physics of gravitational wave generation, propagation, and measurement.",
+     eqs:[
+      {f:"h = ΔL/L",n:"Gravitational Wave Strain",x:"Fractional change in interferometer arm length caused by a passing wave.",d:"LIGO detected h ~ 10⁻²¹ (GW150914).\nArm length L = 4 km → ΔL ~ 4×10⁻¹⁸ m.\nSmaller than a proton by 1000×! Requires quantum squeezing."},
+      {f:"ℳ = (m₁m₂)^(3/5)/(m₁+m₂)^(1/5)",n:"Chirp Mass",x:"The primary parameter controlling gravitational wave frequency evolution.",d:"From the inspiral phase: dν/dt ∝ ℳ^(5/3).\nChirp waveform rises in frequency as separation decreases.\nℳ extracted directly from waveform — usually accurate to <1%."},
+      {f:"P_GW = -32G⁴m₁²m₂²(m₁+m₂)/(5c⁵r⁵)",n:"Peters Formula",x:"Power radiated as gravitational waves from a circular binary orbit.",d:"Derived from quadrupole formula: P = G/5c⁵(d³Qij/dt³)².\nLead to orbit decay — confirmed in Hulse-Taylor pulsar (Nobel 1993).\nSets timescale for LIGO sources."},
+     ]}
+   ]},
+  {id:10,title:"Plasma Physics & MHD",basic:"The fourth state of matter — ionized gas governing stellar and space environments.",tags:["Alfvén","Fusion","Tokamak"],badge:"badge-physics",field:"Physics",
+   concepts:[
+    {title:"Magnetohydrodynamics",desc:"The fluid description of electrically conducting plasmas in magnetic fields.",
+     eqs:[
+      {f:"ρ(∂v/∂t + v·∇v) = J×B - ∇P",n:"MHD Momentum Equation",x:"Plasma flow driven by magnetic (Lorentz) and thermal pressure forces.",d:"J×B: magnetic pressure and tension (Lorentz force on current J).\n∇P: thermal pressure gradient.\nFundamental to solar wind, flares, accretion disks."},
+      {f:"v_A = B/√(μ₀ρ)",n:"Alfvén Velocity",x:"Speed of magnetic tension waves propagating along field lines through a plasma.",d:"Derived from MHD wave equation: treating magnetic field as elastic strings.\nv_A is analogous to string wave speed √(T/ρ).\nSolar wind v_A ~ 50 km/s; pulsar magnetospheres: v_A ~ 0.1c."},
+      {f:"ω_pe = √(ne²/mε₀)",n:"Plasma Frequency",x:"Natural oscillation frequency of electrons — EM waves below this frequency cannot penetrate.",d:"Restoring force: electric field from displaced electrons.\nIonosphere ω_pe limits radio communications (reflects waves below ~10 MHz).\nLab plasmas: ω_pe ~ 10⁹-10¹¹ rad/s."},
+     ]}
+   ]},
+  {id:11,title:"Exoplanet Science",basic:"Detection and characterisation of planets orbiting distant stars.",tags:["Transit","Radial Velocity","Habitability"],badge:"badge-astro",field:"Astrophysics",
+   concepts:[
+    {title:"Detection Methods & Planetary Physics",desc:"The observational techniques that revealed thousands of worlds beyond our solar system.",
+     eqs:[
+      {f:"δF/F = (R_p/R_*)²",n:"Transit Depth",x:"Fractional dip in stellar brightness when a planet crosses the stellar disk.",d:"For Jupiter-Sun: δF ≈ (7×10⁴/7×10⁵)² ≈ 1%.\nFor Earth-Sun: δF ≈ 8×10⁻⁵ (84 ppm) — Kepler mission sensitivity.\nTransit duration also yields orbital inclination."},
+      {f:"K = (2πG/P)^(1/3) m_p sin i / (m_* + m_p)^(2/3)",n:"Radial Velocity Semi-amplitude",x:"The Doppler wobble amplitude K that a planet imparts on its host star.",d:"Measured via spectroscopic redshift/blueshift of stellar lines.\nHot Jupiters: K ~ 100 m/s. Earth analogue: K ~ 0.09 m/s.\nFirst exoplanet (51 Peg b, 1995) found this way."},
+      {f:"HZ: S_eff = L_*/4πd²",n:"Habitable Zone",x:"Distance range where liquid water can exist on a rocky planet's surface.",d:"Flux S_eff must satisfy: S_inner < S_eff < S_outer.\nFor Sun: HZ ≈ 0.95-1.67 AU (runaway greenhouse to maximum greenhouse).\nDepends on stellar luminosity and atmospheric composition."},
+     ]}
+   ]},
+  {id:12,title:"Dark Matter & Dark Energy",basic:"The 95% of the universe that remains invisible but structurally dominant.",tags:["Lambda-CDM","WIMP","Omega"],badge:"badge-astro",field:"Astrophysics",
+   concepts:[
+    {title:"Evidence & Models",desc:"The observational pillars and theoretical frameworks for cosmic dark components.",
+     eqs:[
+      {f:"v(r) = √(GM(<r)/r)",n:"Galaxy Rotation Curves",x:"Observed flat rotation curves beyond galactic disks imply massive unseen halos.",d:"If only visible matter: v should fall as 1/√r (Keplerian).\nObserved: v ~ constant out to 50+ kpc.\nImplies M(<r) ∝ r → ρ_DM ∝ 1/r² (isothermal halo)."},
+      {f:"ρ_Λ = Λc²/8πG",n:"Dark Energy Density",x:"The vacuum energy density associated with Einstein's cosmological constant Λ.",d:"Λ was Einstein's 'greatest mistake', reintroduced in 1998.\nType Ia supernovae show universe acceleration: ä > 0 requires Λ > 0.\nρ_Λ ≈ 6×10⁻²⁷ kg/m³ — incredibly small yet dominant on cosmic scales."},
+      {f:"P(k) = Ak^n T²(k)",n:"Matter Power Spectrum",x:"Statistical distribution of matter density fluctuations on different scales k.",d:"n ≈ 1 (Harrison-Zel'dovich, scale invariant — from inflation).\nT(k): transfer function encoding CDM physics.\nMeasured via galaxy surveys (SDSS, DESI) and CMB (Planck)."},
+     ]}
+   ]},
+  {id:13,title:"Radio Astronomy",basic:"Observing the invisible universe through centimetre-to-metre wavelength radiation.",tags:["Synchrotron","21cm","Pulsars"],badge:"badge-astro",field:"Astrophysics",
+   concepts:[
+    {title:"Emission Mechanisms & Observation",desc:"The physical processes producing radio waves across the cosmos.",
+     eqs:[
+      {f:"ν₂₁ = 1420.406 MHz",n:"HI 21-cm Line",x:"Spin-flip transition of neutral hydrogen — the most important radio spectral line.",d:"Hyperfine splitting: proton-electron spin flip.\nA-coefficient = 2.87×10⁻¹⁵ s⁻¹ (forbidden, but H is abundant).\nMaps galactic structure, rotation, high-z universe (planned SKA surveys)."},
+      {f:"P(ν) ∝ ν^(-α) B^(1+α) N₀",n:"Synchrotron Power Law",x:"Relativistic electrons spiraling in magnetic fields produce power-law radio spectra.",d:"Relativistic electron (E = γmec²) in field B emits at ν_c ~ γ²eB/2πme.\nSpectral index α ≈ 0.5-1.0 for most radio galaxies and plerions.\nDetectable from neutron stars, AGN jets, and supernova remnants."},
+     ]}
+   ]},
+  {id:14,title:"Space Weather & Heliophysics",basic:"Solar activity and its cascading effects on planetary magnetospheres.",tags:["Solar Wind","CME","Kp Index"],badge:"badge-space",field:"Space Science",
+   concepts:[
+    {title:"Solar Wind & Geomagnetic Storms",desc:"The physics of the Sun's continuous particle outflow and its interaction with Earth.",
+     eqs:[
+      {f:"B² / 2μ₀ = ½ρv²",n:"Magnetic Pressure Balance",x:"Solar wind dynamic pressure balanced by planetary magnetic field pressure at the magnetopause.",d:"Left: magnetic pressure of Earth's dipole field.\nRight: ram pressure of solar wind.\nDetermines magnetopause standoff distance R_MP ≈ 10 R_Earth at solar minimum."},
+      {f:"Kp = 0-9",n:"Kp Geomagnetic Index",x:"A 3-hourly measure of global geomagnetic activity derived from 13 sub-auroral magnetometers.",d:"Kp ≤ 2: quiet. Kp 5-6: minor storm. Kp 8-9: extreme storm (G4-G5 NOAA scale).\nCarrington Event (1859): estimated Kp ~ 9+.\nAffects GPS accuracy, satellite drag, power grid stability."},
+      {f:"v_CME ~ 250-3000 km/s",n:"CME Transit Speed",x:"Coronal Mass Ejections can span a huge speed range, driving geomagnetic storms.",d:"Typical transit time Earth: 1-3 days.\nDrag model: CME decelerates toward solar wind speed (~400 km/s).\nKilometric Type II radio bursts track CME shock propagation."},
+     ]}
+   ]},
+  {id:15,title:"Astrobiology",basic:"The search for life's origins, distribution, and future in the cosmos.",tags:["Drake Equation","Biosignatures","Panspermia"],badge:"badge-bio",field:"Astrobiology",
+   concepts:[
+    {title:"Life in the Cosmos",desc:"Quantitative approaches to estimating life's prevalence and detectability.",
+     eqs:[
+      {f:"N = R* · f_p · n_e · f_l · f_i · f_c · L",n:"Drake Equation",x:"Estimates the number of communicating civilisations in the Milky Way.",d:"R* ~ 3/yr star formation rate.\nf_p ~ 1 (most stars have planets, per Kepler).\nn_e ~ 0.4 HZ planets per system.\nf_l, f_i, f_c, L — deeply uncertain; N ranges from <1 to millions."},
+      {f:"CH₄ + 2O₂ → CO₂ + 2H₂O",n:"Biosignature Disequilibrium",x:"Co-existence of chemically reactive gases like O₂ and CH₄ indicates biological production.",d:"These gases react on timescales of ~10 years — must be continuously replenished.\nDetectable in exoplanet atmospheres via transmission spectroscopy.\nTarget instruments: JWST, future HWO (Habitable Worlds Observatory)."},
+     ]}
+   ]},
+  {id:16,title:"Astrochemistry",basic:"Chemical processes in the interstellar medium and planetary atmospheres.",tags:["ISM","Molecules","Dust"],badge:"badge-space",field:"Space Science",
+   concepts:[
+    {title:"Interstellar Medium Chemistry",desc:"The rich molecular chemistry occurring in gas clouds, on dust grains, and in protoplanetary disks.",
+     eqs:[
+      {f:"dN_i/dt = Σ_jk α_jk n_j n_k - N_i Σ_j β_ij n_j",n:"Rate Equation",x:"Time evolution of species i from formation (Σαnjnk) and destruction (Σβijnj) reactions.",d:"α: formation rate coefficients (cm³/s)\nβ: destruction rate coefficients\nIn dark clouds: T~10 K, n~10⁴ cm⁻³ → unusual chemistry (no UV, grain surfaces matter).\nOver 230 molecules detected in ISM including glycine precursors."},
+      {f:"τ = N_H / σ_pe G₀",n:"ISM Photodissociation",x:"Timescale for UV photons to destroy molecules in the interstellar radiation field G₀.",d:"Photodissociation regions (PDRs) form at cloud edges illuminated by hot stars.\nσ_pe: photodissociation cross-section; N_H: H column density; G₀: UV field in Habing units.\nMolecular clouds self-shield — interior chemistry very different from surface."},
+     ]}
+   ]},
+];
+
+const TL = [
+  {yr:"1687",t:"Classical Mechanics",d:"Newton's Principia unifies celestial and terrestrial motion under universal gravitation."},
+  {yr:"1865",t:"Electromagnetism",d:"Maxwell unifies electricity, magnetism, and light into four foundational equations."},
+  {yr:"1905",t:"Special Relativity",d:"Einstein revolutionises space and time; E = mc² is born in the 'miracle year'."},
+  {yr:"1915",t:"General Relativity",d:"Gravity becomes geometry — Einstein's field equations replace Newton's action-at-a-distance."},
+  {yr:"1925",t:"Quantum Mechanics",d:"Heisenberg, Schrödinger, and Dirac formulate the complete quantum framework."},
+  {yr:"1929",t:"Expanding Universe",d:"Hubble discovers galaxies recede proportional to distance — the universe has a beginning."},
+  {yr:"1965",t:"CMB Discovery",d:"Penzias & Wilson accidentally detect the cosmic microwave background — relic of the Big Bang."},
+  {yr:"1974",t:"Hulse-Taylor Pulsar",d:"Indirect evidence for gravitational waves from a decaying binary neutron star orbit (Nobel 1993)."},
+  {yr:"1995",t:"First Exoplanet",d:"Mayor & Queloz discover 51 Peg b — the first planet orbiting a Sun-like star (Nobel 2019)."},
+  {yr:"1998",t:"Accelerating Universe",d:"Type Ia supernovae reveal cosmic acceleration — dark energy (Λ) dominates the universe."},
+  {yr:"2016",t:"Gravitational Waves",d:"LIGO detects GW150914 — two black holes merging 1.3 billion light-years away."},
+  {yr:"2019",t:"Black Hole Image",d:"Event Horizon Telescope images M87* — the first direct photograph of a black hole shadow."},
+  {yr:"2022",t:"JWST First Light",d:"James Webb Space Telescope begins deep-field imaging of galaxies just 300 million years after the Big Bang."},
+];
+
+/* ═══════════════════════════════════════════════════════
+   RENDER CARDS
+═══════════════════════════════════════════════════════ */
+const pgrid = document.getElementById('pgrid');
+DATA.forEach((item,idx) => {
+  const card = document.createElement('div');
+  card.className = 'pcard';
+  card.innerHTML = `
+    <div class="corbit"></div>
+    <span class="fbadge ${item.badge}">${item.field}</span>
+    <div class="cid"><span>${item.title.toUpperCase()}</span><span class="cnum">${String(item.id).padStart(2,'0')}</span></div>
+    <h3 class="ctitle">${item.title}</h3>
+    <p class="cdesc">${item.basic}</p>
+    <div class="ctags">${item.tags.map(t=>`<span class="ctag">${t}</span>`).join('')}</div>
+    <div class="cgo"><span>Explore Equations</span><div class="garrow"></div></div>
+  `;
+  card.addEventListener('mousemove', e => {
+    const r = card.getBoundingClientRect();
+    const rx = ((e.clientY-r.top)/r.height-0.5)*9;
+    const ry = (0.5-(e.clientX-r.left)/r.width)*9;
+    card.style.transform = `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg) scale(1.02)`;
+  });
+  card.addEventListener('mouseleave', () => { card.style.transform = ''; });
+  card.addEventListener('click', () => openModal(item.id));
+  pgrid.appendChild(card);
+});
+
+/* RENDER TIMELINE */
+const tlEl = document.getElementById('tl');
+TL.forEach((item,i) => {
+  const div = document.createElement('div');
+  div.className = 'titem';
+  div.innerHTML = `<div class="tnode"></div><div class="tyr">${item.yr}</div><div class="tttl">${item.t}</div><p class="tdsc">${item.d}</p>`;
+  tlEl.appendChild(div);
+});
+const obs = new IntersectionObserver(entries => entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('vis'); }), { threshold:.15 });
+document.querySelectorAll('.titem').forEach(i => obs.observe(i));
+
+/* ═══════════════════════════════════════════════════════
+   MODAL
+═══════════════════════════════════════════════════════ */
+const modal = document.getElementById('modal');
+const mbody = document.getElementById('mbody');
+const mtitle = document.getElementById('mtitle');
+const dpanel = document.getElementById('dpanel');
+
+function esc(s){ return (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n'); }
+
+function openModal(id){
+  const d = DATA.find(p=>p.id===id); if(!d) return;
+  mtitle.textContent = d.title;
+  mbody.innerHTML = d.concepts.map(c => `
+    <div class="cblock">
+      <div class="ctag2">Concept</div>
+      <h3 class="cttl">${c.title}</h3>
+      <p class="cdsc">${c.desc||''}</p>
+      <div class="egrid">
+        ${c.eqs.map(eq=>`
+          <div class="ecard" onclick="showDet('${esc(eq.f)}','${esc(eq.n)}','${esc(eq.x)}','${esc(eq.d)}',this)">
+            <div class="efml">${eq.f}</div>
+            <div class="ename">${eq.n}</div>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+  dpanel.classList.remove('open');
+  modal.classList.add('active');
+  document.body.style.overflow='hidden';
+}
+
+function showDet(f,n,x,d,el){
+  document.querySelectorAll('.ecard').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('dttl').textContent=n;
+  document.getElementById('dfml').textContent=f;
+  document.getElementById('dexp').textContent=x;
+  document.getElementById('ddrv').textContent=(d||'').replace(/\\n/g,'\n');
+  dpanel.classList.add('open');
+}
+
+document.getElementById('mclose').addEventListener('click',()=>{ modal.classList.remove('active'); document.body.style.overflow=''; dpanel.classList.remove('open'); });
+document.getElementById('dclose').addEventListener('click',()=>{ dpanel.classList.remove('open'); document.querySelectorAll('.ecard').forEach(c=>c.classList.remove('sel')); });
+modal.addEventListener('click',e=>{ if(e.target===modal){ modal.classList.remove('active'); document.body.style.overflow=''; dpanel.classList.remove('open'); }});
+
+/* ═══════════════════════════════════════════════════════
+   AI INTERFACE — Real Claude API with Web Search
+═══════════════════════════════════════════════════════ */
+const aitrig = document.getElementById('aitrig');
+const aiw = document.getElementById('aiw');
+const aimsgs = document.getElementById('aimsgs');
+const aiinp = document.getElementById('aiinp');
+const aisnd = document.getElementById('aisnd');
+aitrig.addEventListener('click',()=>aiw.classList.toggle('open'));
+
+// Conversation history
+const conversationHistory = [];
+
+function addMsg(txt, type){
+  const d = document.createElement('div');
+  d.className = `msg ${type}`;
+  d.textContent = txt;
+  aimsgs.appendChild(d);
+  aimsgs.scrollTop = aimsgs.scrollHeight;
+  return d;
+}
+
+async function sendMsg(){
+  const txt = aiinp.value.trim();
+  if(!txt) return;
+
+  addMsg(txt, 'usr');
+  aiinp.value = '';
+
+  const thinking = addMsg('▍ Consulting the cosmos...', 'think');
+
+  conversationHistory.push({ role:'user', content: txt });
+  if(conversationHistory.length > 20) conversationHistory.splice(0, 2);
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: conversationHistory })
+    });
+
+    const data = await res.json();
+    let reply = data.reply || data.error || 'No signal received. Please try again.';
+    reply = reply.replace(/\*\*/g,'').replace(/\*/g,'').replace(/#{1,6} /g,'').replace(/`/g,'');
+
+    conversationHistory.push({ role:'assistant', content: reply });
+    thinking.remove();
+    addMsg(reply, 'bot');
+
+  } catch(err) {
+    thinking.remove();
+    addMsg('Connection error: ' + (err.message || 'Check your internet.'), 'bot');
+  }
+}
+
+aisnd.addEventListener('click', sendMsg);
+aiinp.addEventListener('keydown', e => { if(e.key === 'Enter') sendMsg(); });
+</script>
+</body>
+</html>
